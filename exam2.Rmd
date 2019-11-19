@@ -1,8 +1,8 @@
 ---
 title: "Exam 2"
-author: '[Name]'
+author: "Mingxuan Yang"
 date: "11/14/2019"
-output: 
+output:
   html_document:
     keep_md: yes
 ---
@@ -12,14 +12,417 @@ knitr::opts_chunk$set(echo = TRUE, comment = NA,
                       message = FALSE, warning = FALSE)
 ```
 
+```{r packages}
+library(tidyverse)
+library(jsonlite)
+library(doMC)
+library(foreach)
+registerDoMC(1)
+library(shiny)
+library(shinydashboard)
+```
 
 ## Task 1
 
+(1)
 
+```{r function}
+# function to transform list to data frame
+# inspiration from group work
+transform.list <- function(list, ...){
+    vars <- Reduce(function(x, y){union(x, names(y))}, list, init = c()) ## obtain variable names
+    clean_list <- lapply(list, function(x){
+        x <- x[vars]
+        names(x) <- vars
+        x <- lapply(x, function(y){
+            if (is.null(y)) {
+                NA
+            } else if (is.list(y)) {
+                if (length(y) != 1) y <- list(y)
+                I(y)
+            } else {
+                y
+            }
+        })
+        as.data.frame(x, ...)
+    })
+    do.call(rbind, clean_list) ## transform each rows one by one
+}
+```
+
+```{r task 1.1}
+# data
+api.key <- "19076797771e4d9e899dfefc3ebe6da3"
+base.url1.1.1 <- "https://newsapi.org/v2/sources?category=general&language=en&country=us&apiKey="
+base.url1.1.2 <- "https://newsapi.org/v2/sources?category=business&language=en&country=us&apiKey="
+url1.1.1 <- str_c(base.url1.1.1, api.key)
+url1.1.2 <- str_c(base.url1.1.2, api.key)
+data1.1.list <- c(read_json(url1.1.1)[[2]],read_json(url1.1.2)[[2]])
+
+# transform list to data
+data1.1 <- transform.list(data1.1.list)
+
+# filter
+c.name <- c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+if(is.null(data1.1)){
+  data.frame()
+}else{
+  data1.1 %>%
+  filter(name %in% c.name) %>% 
+  select(id)
+}
+```
+
+(2)
+
+```{r task 1.2}
+# data
+# since we cannot mix country param with sources param, here I will do the sources filter first
+base.url1.2 <- "https://newsapi.org/v2/top-headlines?country=us&q=taxes&apiKey="
+url1.2 <- str_c(base.url1.2, api.key)
+data1.2.list <- read_json(url1.2)$articles
+
+# transform list to data
+data1.2.1 <- transform.list(data1.2.list)
+data1.2.2 <- transform.list(data1.2.1$source)
+data1.2 <- cbind(data1.2.2, data1.2.1[,-1])
+
+# filter
+if(is.null(data1.2)){
+  data.frame()
+}else{
+  data1.2 %>%
+    filter(name %in% c.name) %>% 
+    select(title)
+}
+```
+
+(3)
+
+```{r task 1.3}
+# data
+# there is no country param for everything data
+base.url1.3 <- "https://newsapi.org/v2/everything?sources=cnn,fox-news,the-wall-street-journal,reuters&from=2019-11-01&to=2019-11-01&qInTitle=healthcare&language=en&apiKey="
+url1.3 <- str_c(base.url1.3, api.key)
+data1.3.list <- read_json(url1.3)$articles
+
+# transform list to data
+data1.3.1 <- transform.list(data1.3.list)
+data1.3.2 <- transform.list(data1.3.1$source)
+data1.3 <- cbind(data1.3.2, data1.3.1[,-1])
+
+# result
+if(is.null(data1.3)){
+  data.frame()
+}else{
+  data1.3 %>% select(title)
+}
+```
 
 ## Task 2
 
+(1)
 
+```{r task 2.1}
+# category has to be within the possible options
+get_sources <- function(category = NULL, api_key = NULL){
+  # input checks
+  stopifnot(category %in% c("business", "entertainment", "general", "health", "science", "sports", "technology"))
+  stopifnot(is.character(api_key))
+  
+  # check if category is null
+  if(is.null(category)){
+    data.frame()
+  }else{
+    category <- unique(category)
+    base.url <- "https://newsapi.org/v2/sources?country=us&language=en&category="
+    foreach(i = 1:length(category),.combine = "rbind") %dopar% {
+      url <- str_c(base.url, category[i], "&apiKey=", api_key)
+      data.list <- read_json(url)$sources
+    
+      # transform list to data
+      transform.list(data.list)
+      }
+  }
+}
+```
+
+(2)
+
+```{r task 2.2}
+# sources are in the original form like c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+# since we cannot mix country param with sources param, this function will do the country filter first
+get_headlines <- function(sources = NULL, q = NULL, page_size = 20, page = 1, api_key = NULL){
+  # input checks
+  stopifnot(sources %in% c("CNN", "Fox News", "The Wall Street Journal", "Reuters"))
+  stopifnot(is.character(q) | is.null(q))
+  stopifnot(page_size %% 1 == 0 & page_size >= 1 & page_size <= 100)
+  stopifnot(page %% 1 == 0 & page >= 1)
+  stopifnot(is.character(api_key))
+  
+  # check if sources is null
+  if(is.null(sources)){
+    data.frame()
+  }else{
+    base.url <- "https://newsapi.org/v2/top-headlines?country=us&language=en&q="
+    url <- str_c(base.url, q, "&pageSize=", page_size, "&page=", page, "&apiKey=", api_key)
+    data.list <- read_json(url)$articles
+    
+    # transform list to data
+    data1 <- transform.list(data.list)
+    data2 <- transform.list(data1$source)
+    data <- cbind(data2, data1[,-1])
+      
+    # check if data is NULL
+    if(is.null(data)){
+      data.frame()
+    }else{
+      data %>% filter(name %in% sources)
+      }
+    }
+}
+```
+
+(3)
+
+```{r task 2.3}
+# sources are in the original form like c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+# from and to are single character
+get_historic <- function(q = NULL, q_title = NULL, sources = NULL, from = NULL, to = NULL, sort_by = NULL, page_size = 20, page = 1, api_key = NULL){
+  # input checks
+  stopifnot(is.character(q) | is.null(q))
+  stopifnot(is.character(q_title) | is.null(q_title))
+  stopifnot(sources %in% c("CNN", "Fox News", "The Wall Street Journal", "Reuters"))
+  if(!is.null(from)){
+    stopifnot(
+      is.character(from) & 
+        (!(is.na(as.POSIXlt(from, "UTC", "%Y-%m-%dT%H:%M:%S"))) | 
+           !(is.na(as.POSIXlt(from, "UTC", "%Y-%m-%d"))))
+      )
+  }
+  if(!is.null(to)){
+      stopifnot(
+        is.character(to) &
+        (!(is.na(as.POSIXlt(to, "UTC", "%Y-%m-%dT%H:%M:%S"))) | 
+        !(is.na(as.POSIXlt(to, "UTC", "%Y-%m-%d"))))
+        )
+  }
+  stopifnot(sort_by %in% c("relevancy", "popularity", "publishedAt"))
+  stopifnot(page_size %% 1 == 0 & page_size >= 1 & page_size <= 100)
+  stopifnot(page %% 1 == 0 & page >= 1)
+  stopifnot(is.character(api_key))
+  
+  # check if sources is null
+  if(is.null(sources)){
+    data.frame()
+  }else{
+    sources <- case_when(
+      sources == "CNN" ~ "cnn",
+      sources == "Fox News" ~ "fox-news",
+      sources == "The Wall Street Journal" ~ "the-wall-street-journal",
+      sources == "Reuters" ~ "reuters"
+    )
+    sources <- paste(sources, collapse = ",")
+    base.url <- "https://newsapi.org/v2/everything?q="
+    data.list <- list()
+    url <- str_c(base.url, q, "&qInTitle=", q_title, "&sources=", sources, "&from=", from, "&to=", to, "&sortBy=", sort_by, "&pageSize=", page_size, "&page=", page, "&apiKey=", api_key)
+    data.list <- c(data.list, read_json(url)$articles)
+    
+    data1 <- transform.list(data.list)
+    data2 <- transform.list(data1$source)
+    data <- cbind(data2, data1[,-1])
+  }
+}
+```
 
 ## Task 3
 
+```{r}
+ui <- dashboardPage(
+    dashboardHeader(title = "Central News Hub"),
+    
+    dashboardSidebar(
+        sidebarMenu(
+            menuItem("Sources", tabName = "sources", icon = icon("th")
+            ),
+            menuItem("Top headlines", tabName = "headlines", icon = icon("heading")
+            ),
+            menuItem("Everything", tabName = "everything", icon = icon("database")
+            )
+        )
+    ),
+    
+    dashboardBody(
+        tabItems(
+            # sources
+            tabItem(tabName = "sources",
+                    fluidRow(
+                        # output
+                        box(
+                            title = "Sources",
+                            status = "primary",
+                            width = 9,
+                            solidHeader = TRUE,
+                            collapsible = TRUE,
+                            tableOutput("sources_table")),
+                        
+                        # input
+                        box(
+                            title = "Inputs", status = "warning",
+                            width = 3,
+                            solidHeader = TRUE, collapsible = TRUE,
+                            textInput("sources_key", label = "API key"),
+                            checkboxGroupInput("sources_category", 
+                                               label = "Category",
+                                               choices = c("business", "entertainment", "general", "health", "science", "sports", "technology"),
+                                               selected = "business"),
+                            div(align="right",
+                                actionButton("sources_run", label = "Run")
+                            )
+                        )
+                    )
+            ),
+            
+            # headlines
+            tabItem(tabName = "headlines",
+                    fluidRow(
+                        # output
+                        box(
+                            title = "Headlines",
+                            status = "primary",
+                            width = 9,
+                            solidHeader = TRUE,
+                            collapsible = TRUE,
+                            tableOutput("headlines_table")),
+                        
+                        # input
+                        box(
+                            title = "Inputs", status = "warning",
+                            width = 3,
+                            solidHeader = TRUE, collapsible = TRUE,
+                            textInput("headlines_key", label = "API key"),
+                            checkboxGroupInput("headlines_sources", 
+                                               label = "Sources",
+                                               choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")),
+                            textInput("headlines_q", label = "Keywords or Phrases"),
+                            numericInput("headlines_page_size", label = "Number of Results per Page", value = 20, min = 1, max = 100, step = 1),
+                            numericInput("headlines_page", label = "Page Number", value = 1, min = 1, step = 1),
+                            div(align="right",
+                                actionButton("headlines_run", label = "Run")
+                            )
+                        )
+                    )
+            ),
+            
+            # everything
+            tabItem(tabName = "everything",
+                    fluidRow(
+                        # output
+                        box(
+                            title = "Everything",
+                            status = "primary",
+                            width = 9,
+                            solidHeader = TRUE,
+                            collapsible = TRUE,
+                            tableOutput("everything_table")),
+                        
+                        # input
+                        box(
+                            title = "Inputs", status = "warning",
+                            width = 3,
+                            solidHeader = TRUE, collapsible = TRUE,
+                            textInput("everything_key", label = "API key"),
+                            checkboxGroupInput("everything_sources", 
+                                               label = "Sources",
+                                               choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")),
+                            dateRangeInput("everything_time_range", 
+                                           label = "Date and Optional Time Range",
+                                           min = Sys.Date() - 30,
+                                           max = Sys.Date(),
+                                           start = "2019-11-19",
+                                           end = "2019-11-19"
+                                
+                            ),
+                            textInput("everything_q_title", label = "Keywords or Phrases in Title"),
+                            textInput("everything_q", label = "Keywords or Phrases in Title and Body"),
+                            numericInput("everything_page_size", label = "Number of Results per Page", value = 20, min = 1, max = 100, step = 1),
+                            numericInput("everything_page", label = "Page Number", value = 1, min = 1, step = 1),
+                            selectInput("everything_sort_by",
+                                        label = "The Order to Sort the Articles",
+                                        choices = c("relevancy", "popularity", "publishedAt")),
+                            div(align="right",
+                                actionButton("everything_run", label = "Run")
+                            )
+                        )
+                    )
+            )
+            
+        )
+    )
+)
+
+server <- function(input, output) {
+    # sources reactive
+    data_sources <- eventReactive(input$sources_run, {
+        data_sources_reac <- foreach(i = 1:length(input$sources_category),.combine = "rbind") %dopar% {
+            get_sources(input$sources_category[i], input$sources_key)
+        }
+        validate(
+            need(length(data_sources_reac) != 0, "No result under this condition")
+        )
+        data_sources_reac %>% select(name, url)
+    })
+    
+    # sources output
+    output$sources_table <- renderTable({
+        data_sources()
+    })
+    
+    # headlines reactive
+    data_headlines <- eventReactive(input$headlines_run, {
+        data_headlines_reac <- get_headlines(sources = input$headlines_sources,
+                      q = input$headlines_q,
+                      page_size = input$headlines_page_size,
+                      page = input$headlines_page,
+                      api_key = input$headlines_key
+                      )
+        validate(
+            need(length(data_headlines_reac) != 0, "No result under this condition")
+        )
+        data_headlines_reac %>% select(name, author, title, url)
+        })
+    
+    
+    # headlines output
+    output$headlines_table <- renderTable({
+        data_headlines()
+    })
+    
+    # everything reactive
+    data_everything <- eventReactive(input$everything_run, {
+        data_everything_reac <- get_historic(
+            q = input$everything_q,
+            q_title = input$everything_q_title,
+            sources = input$everything_sources,
+            from = as.character(input$everything_time_range[1]),
+            to = as.character(input$everything_time_range[2]),
+            sort_by = input$everything_sort_by,
+            page_size = input$everything_page_size,
+            page = input$everything_page,
+            api_key = input$everything_key
+        )
+        validate(
+            need(length(data_everything_reac) != 0, "No result under this condition")
+        )
+        data_everything_reac %>% select(name, author, title, url, publishedAt)
+        })
+    
+    
+    # everything output
+    output$everything_table <- renderTable({
+        data_everything()
+    })
+}
+
+shinyApp(ui, server)
+```
