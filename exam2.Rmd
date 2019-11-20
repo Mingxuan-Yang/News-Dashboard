@@ -27,8 +27,8 @@ library(shinydashboard)
 (1)
 
 ```{r function}
+# inspiration from group work (hw4-alpha)
 # function to transform list to data frame
-# inspiration from group work
 transform.list <- function(list, ...){
     vars <- Reduce(function(x, y){union(x, names(y))}, list, init = c()) ## obtain variable names
     clean_list <- lapply(list, function(x){
