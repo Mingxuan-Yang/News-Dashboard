@@ -370,7 +370,7 @@ server <- function(input, output) {
         validate(
             need(length(data_sources_reac) != 0, "No result under this condition")
         )
-        data_sources_reac %>% select(name, url)
+        data_sources_reac %>% select(name, category, url)
     })
     
     # sources output
