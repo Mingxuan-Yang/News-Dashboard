@@ -354,7 +354,7 @@ ui <- dashboardPage(
                   checkboxGroupInput("headlines_variable",
                                      label = "Select Variables",
                                      choices = c("id", "name", "author", "title", "description", "url", "urlToImage", "publishedAt", "content"),
-                                     selected = c("name", "author", "title", "url")
+                                     selected = c("name", "author", "url")
                                      )
                   )
                 )
@@ -424,7 +424,7 @@ ui <- dashboardPage(
                   checkboxGroupInput("everything_variable", 
                                      label = "Selected Variables",
                                      choices = c("id", "name", "author", "title", "description", "url", "urlToImage", "publishedAt", "content"),
-                                     selected = c("name", "author", "title", "url")
+                                     selected = c("name", "author", "url")
                                      )
                   )
                 )
@@ -436,6 +436,9 @@ ui <- dashboardPage(
 server <- function(input, output) {
   # sources reactive
   data_sources <- eventReactive(input$sources_run, {
+    # check if the api key is valid
+    shiny::validate(
+      need(class(try(read_json(str_c("https://newsapi.org/v2/sources?apiKey=", input$sources_key)), silent = TRUE)) != "try-error", "This is not a valid API"))
     data_sources_reac <- foreach(i = 1:length(input$sources_category),.combine = "rbind") %dopar% {
       get_sources(input$sources_category[i], input$sources_key)
       }
@@ -453,6 +456,8 @@ server <- function(input, output) {
   
   # headlines reactive
   data_headlines <- eventReactive(input$headlines_run, {
+    shiny::validate(
+      need(class(try(read_json(str_c("https://newsapi.org/v2/sources?apiKey=", input$headlines_key)), silent = TRUE)) != "try-error", "This is not a valid API"))
     data_headlines_reac <- get_headlines(sources = input$headlines_sources,
                                          q = input$headlines_q,
                                          page_size = input$headlines_page_size,
@@ -472,6 +477,8 @@ server <- function(input, output) {
   
   # everything reactive
   data_everything <- eventReactive(input$everything_run, {
+    shiny::validate(
+      need(class(try(read_json(str_c("https://newsapi.org/v2/sources?apiKey=", input$everything_key)), silent = TRUE)) != "try-error", "This is not a valid API"))
     data_everything_reac <- get_historic(
       q = input$everything_q,
       q_title = input$everything_q_title,
