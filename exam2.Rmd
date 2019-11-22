@@ -5,6 +5,7 @@ date: "11/14/2019"
 output:
   html_document:
     keep_md: yes
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -239,190 +240,250 @@ get_historic <- function(q = NULL, q_title = NULL, sources = NULL, from = NULL, 
 
 ```{r}
 ui <- dashboardPage(
-    dashboardHeader(title = "Central News Hub"),
-    
-    dashboardSidebar(
-        sidebarMenu(
-            menuItem("Sources", tabName = "sources", icon = icon("th")
-            ),
-            menuItem("Top headlines", tabName = "headlines", icon = icon("heading")
-            ),
-            menuItem("Everything", tabName = "everything", icon = icon("database")
-            )
-        )
+  dashboardHeader(title = "Central News Hub"),
+  
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Sources", tabName = "sources", icon = icon("th")
+               ),
+      menuItem("Top headlines", tabName = "headlines", icon = icon("heading")
+               ),
+      menuItem("Everything", tabName = "everything", icon = icon("database")
+               )
+      )
     ),
-    
-    dashboardBody(
-        tabItems(
-            # sources
-            tabItem(tabName = "sources",
-                    fluidRow(
-                        # output
-                        box(
-                            title = "Sources",
-                            status = "primary",
-                            width = 9,
-                            solidHeader = TRUE,
-                            collapsible = TRUE,
-                            tableOutput("sources_table")),
+  
+  dashboardBody(
+    tabItems(
+      # sources
+      tabItem(tabName = "sources",
+              fluidRow(
+                # output
+                box(
+                  title = "Sources",
+                  status = "primary",
+                  width = 9,
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  tableOutput("sources_table")),
                         
-                        # input
-                        box(
-                            title = "Inputs", status = "warning",
-                            width = 3,
-                            solidHeader = TRUE, collapsible = TRUE,
-                            textInput("sources_key", label = "API key"),
-                            checkboxGroupInput("sources_category", 
-                                               label = "Category",
-                                               choices = c("business", "entertainment", "general", "health", "science", "sports", "technology"),
-                                               selected = "business"),
-                            div(align="right",
-                                actionButton("sources_run", label = "Run")
-                            )
-                        )
-                    )
-            ),
-            
-            # headlines
-            tabItem(tabName = "headlines",
-                    fluidRow(
-                        # output
-                        box(
-                            title = "Headlines",
-                            status = "primary",
-                            width = 9,
-                            solidHeader = TRUE,
-                            collapsible = TRUE,
-                            tableOutput("headlines_table")),
-                        
-                        # input
-                        box(
-                            title = "Inputs", status = "warning",
-                            width = 3,
-                            solidHeader = TRUE, collapsible = TRUE,
-                            textInput("headlines_key", label = "API key"),
-                            checkboxGroupInput("headlines_sources", 
-                                               label = "Sources",
-                                               choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")),
-                            textInput("headlines_q", label = "Keywords or Phrases"),
-                            numericInput("headlines_page_size", label = "Number of Results per Page", value = 20, min = 1, max = 100, step = 1),
-                            numericInput("headlines_page", label = "Page Number", value = 1, min = 1, step = 1),
-                            div(align="right",
-                                actionButton("headlines_run", label = "Run")
-                            )
-                        )
-                    )
-            ),
-            
-            # everything
-            tabItem(tabName = "everything",
-                    fluidRow(
-                        # output
-                        box(
-                            title = "Everything",
-                            status = "primary",
-                            width = 9,
-                            solidHeader = TRUE,
-                            collapsible = TRUE,
-                            tableOutput("everything_table")),
-                        
-                        # input
-                        box(
-                            title = "Inputs", status = "warning",
-                            width = 3,
-                            solidHeader = TRUE, collapsible = TRUE,
-                            textInput("everything_key", label = "API key"),
-                            checkboxGroupInput("everything_sources", 
-                                               label = "Sources",
-                                               choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")),
-                            dateRangeInput("everything_time_range", 
-                                           label = "Date and Optional Time Range",
-                                           min = Sys.Date() - 30,
-                                           max = Sys.Date(),
-                                           start = "2019-11-19",
-                                           end = "2019-11-19"
-                                
+                # input
+                box(
+                  title = "Inputs", 
+                  status = "warning",
+                  width = 3,
+                  solidHeader = TRUE, 
+                  collapsible = TRUE,
+                  textInput("sources_key", 
+                            label = "API key"
                             ),
-                            textInput("everything_q_title", label = "Keywords or Phrases in Title"),
-                            textInput("everything_q", label = "Keywords or Phrases in Title and Body"),
-                            numericInput("everything_page_size", label = "Number of Results per Page", value = 20, min = 1, max = 100, step = 1),
-                            numericInput("everything_page", label = "Page Number", value = 1, min = 1, step = 1),
-                            selectInput("everything_sort_by",
-                                        label = "The Order to Sort the Articles",
-                                        choices = c("relevancy", "popularity", "publishedAt")),
-                            div(align="right",
-                                actionButton("everything_run", label = "Run")
-                            )
-                        )
-                    )
-            )
-            
-        )
+                  checkboxGroupInput("sources_category",
+                                     label = "Category",
+                                     choices = c("business", "entertainment", "general", "health", "science", "sports", "technology"),
+                                     selected = "business"
+                                     ),
+                  div(align="right",
+                      actionButton("sources_run", label = "Run")
+                      ),
+                  br(),
+                  checkboxGroupInput("sources_variable",
+                                     label = "Select Variables",
+                                     choices = c("id", "name", "description", "url", "category", "language", "country"),
+                                     selected = c("name", "category", "url")
+                                     )
+                  )
+                )
+              ),
+      
+      # headlines
+      tabItem(tabName = "headlines",
+              fluidRow(
+                # output
+                box(
+                  title = "Headlines",
+                  status = "primary",
+                  width = 9,
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  tableOutput("headlines_table")),
+                
+                # input
+                box(
+                  title = "Inputs", 
+                  status = "warning",
+                  width = 3,
+                  solidHeader = TRUE, 
+                  collapsible = TRUE,
+                  textInput("headlines_key", 
+                            label = "API key"
+                            ),
+                  checkboxGroupInput("headlines_sources",
+                                     label = "Sources",
+                                     choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+                                     ),
+                  textInput("headlines_q", 
+                            label = "Keywords or Phrases"
+                            ),
+                  numericInput("headlines_page_size", 
+                               label = "Number of Results per Page", 
+                               value = 20, 
+                               min = 1, 
+                               max = 100, 
+                               step = 1
+                               ),
+                  numericInput("headlines_page", 
+                               label = "Page Number", 
+                               value = 1, 
+                               min = 1, 
+                               step = 1
+                               ),
+                  div(align="right",
+                      actionButton("headlines_run", label = "Run")
+                      ),
+                  br(),
+                  checkboxGroupInput("headlines_variable",
+                                     label = "Select Variables",
+                                     choices = c("id", "name", "author", "title", "description", "url", "urlToImage", "publishedAt", "content"),
+                                     selected = c("name", "author", "title", "url")
+                                     )
+                  )
+                )
+              ),
+      
+      # everything
+      tabItem(tabName = "everything",
+              fluidRow(
+                # output
+                box(
+                  title = "Everything",
+                  status = "primary",
+                  width = 9,
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  tableOutput("everything_table")),
+                
+                # input
+                box(
+                  title = "Inputs", 
+                  status = "warning",
+                  width = 3,
+                  solidHeader = TRUE, 
+                  collapsible = TRUE,
+                  textInput("everything_key", 
+                            label = "API key"
+                            ),
+                  checkboxGroupInput("everything_sources", 
+                                     label = "Sources",
+                                     choices = c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+                                     ),
+                  dateRangeInput("everything_time_range",
+                                 label = "Date and Optional Time Range",
+                                 min = Sys.Date() - 30,
+                                 max = Sys.Date(),
+                                 start = "2019-11-19",
+                                 end = "2019-11-19"
+                                 ),
+                  textInput("everything_q_title", 
+                            label = "Keywords or Phrases in Title"
+                            ),
+                  textInput("everything_q", 
+                            label = "Keywords or Phrases in Title and Body"
+                            ),
+                  numericInput("everything_page_size", 
+                               label = "Number of Results per Page", 
+                               value = 20, 
+                               min = 1, 
+                               max = 100, 
+                               step = 1
+                               ),
+                  numericInput("everything_page", 
+                               label = "Page Number", 
+                               value = 1, 
+                               min = 1, 
+                               step = 1
+                               ),
+                  selectInput("everything_sort_by",
+                              label = "The Order to Sort the Articles",
+                              choices = c("relevancy", "popularity", "publishedAt")
+                              ),
+                  div(align="right",
+                      actionButton("everything_run", 
+                                   label = "Run")
+                      ),
+                  br(),
+                  checkboxGroupInput("everything_variable", 
+                                     label = "Selected Variables",
+                                     choices = c("id", "name", "author", "title", "description", "url", "urlToImage", "publishedAt", "content"),
+                                     selected = c("name", "author", "title", "url")
+                                     )
+                  )
+                )
+              )
+      )
     )
-)
+  )
 
 server <- function(input, output) {
-    # sources reactive
-    data_sources <- eventReactive(input$sources_run, {
-        data_sources_reac <- foreach(i = 1:length(input$sources_category),.combine = "rbind") %dopar% {
-            get_sources(input$sources_category[i], input$sources_key)
-        }
-        validate(
-            need(length(data_sources_reac) != 0, "No result under this condition")
-        )
-        data_sources_reac %>% select(name, category, url)
+  # sources reactive
+  data_sources <- eventReactive(input$sources_run, {
+    data_sources_reac <- foreach(i = 1:length(input$sources_category),.combine = "rbind") %dopar% {
+      get_sources(input$sources_category[i], input$sources_key)
+      }
+    shiny::validate(
+      need(length(rownames(data_sources_reac)) != 0, "No result under this condition"))
+    data_sources_reac
     })
-    
-    # sources output
-    output$sources_table <- renderTable({
-        data_sources()
+  
+  # sources output
+  output$sources_table <- renderTable({
+    shiny::validate(
+      need(!is.null(input$sources_variable), "No result under this condition"))
+    data_sources()[,input$sources_variable]
     })
-    
-    # headlines reactive
-    data_headlines <- eventReactive(input$headlines_run, {
-        data_headlines_reac <- get_headlines(sources = input$headlines_sources,
-                      q = input$headlines_q,
-                      page_size = input$headlines_page_size,
-                      page = input$headlines_page,
-                      api_key = input$headlines_key
-                      )
-        validate(
-            need(length(data_headlines_reac) != 0, "No result under this condition")
-        )
-        data_headlines_reac %>% select(name, author, title, url)
-        })
-    
-    
-    # headlines output
-    output$headlines_table <- renderTable({
-        data_headlines()
+  
+  # headlines reactive
+  data_headlines <- eventReactive(input$headlines_run, {
+    data_headlines_reac <- get_headlines(sources = input$headlines_sources,
+                                         q = input$headlines_q,
+                                         page_size = input$headlines_page_size,
+                                         page = input$headlines_page,
+                                         api_key = input$headlines_key
+                                         )
+    shiny::validate(need(length(rownames(data_headlines_reac)) != 0, "No result under this condition"))
+    data_headlines_reac
     })
-    
-    # everything reactive
-    data_everything <- eventReactive(input$everything_run, {
-        data_everything_reac <- get_historic(
-            q = input$everything_q,
-            q_title = input$everything_q_title,
-            sources = input$everything_sources,
-            from = as.character(input$everything_time_range[1]),
-            to = as.character(input$everything_time_range[2]),
-            sort_by = input$everything_sort_by,
-            page_size = input$everything_page_size,
-            page = input$everything_page,
-            api_key = input$everything_key
-        )
-        validate(
-            need(length(data_everything_reac) != 0, "No result under this condition")
-        )
-        data_everything_reac %>% select(name, author, title, url, publishedAt)
-        })
-    
-    
-    # everything output
-    output$everything_table <- renderTable({
-        data_everything()
+  
+  # headlines output
+  output$headlines_table <- renderTable({
+    shiny::validate(
+      need(!is.null(input$headlines_variable), "No result under this condition"))
+    data_headlines()[,input$headlines_variable]
     })
-}
+  
+  # everything reactive
+  data_everything <- eventReactive(input$everything_run, {
+    data_everything_reac <- get_historic(
+      q = input$everything_q,
+      q_title = input$everything_q_title,
+      sources = input$everything_sources,
+      from = as.character(input$everything_time_range[1]),
+      to = as.character(input$everything_time_range[2]),
+      sort_by = input$everything_sort_by,
+      page_size = input$everything_page_size,
+      page = input$everything_page,
+      api_key = input$everything_key
+      )
+    shiny::validate(need(length(rownames(data_everything_reac)) != 0, "No result under this condition"))
+    data_everything_reac
+    })
+  
+  # everything output
+  output$everything_table <- renderTable({
+    shiny::validate(
+      need(!is.null(input$everything_variable), "No result under this condition"))
+    data_everything()[,input$everything_variable]
+  })
+  }
 
 shinyApp(ui, server)
 ```
