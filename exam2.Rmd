@@ -275,7 +275,7 @@ ui <- dashboardPage(
                   width = 9,
                   solidHeader = TRUE,
                   collapsible = TRUE,
-                  tableOutput("sources_table")),
+                  DT::dataTableOutput("sources_table")),
                         
                 # input
                 box(
@@ -315,7 +315,7 @@ ui <- dashboardPage(
                   width = 9,
                   solidHeader = TRUE,
                   collapsible = TRUE,
-                  tableOutput("headlines_table")),
+                  DT::dataTableOutput("headlines_table")),
                 
                 # input
                 box(
@@ -370,7 +370,7 @@ ui <- dashboardPage(
                   width = 9,
                   solidHeader = TRUE,
                   collapsible = TRUE,
-                  tableOutput("everything_table")),
+                  DT::dataTableOutput("everything_table")),
                 
                 # input
                 box(
@@ -445,7 +445,7 @@ server <- function(input, output) {
     })
   
   # sources output
-  output$sources_table <- renderTable({
+  output$sources_table <- DT::renderDataTable({
     shiny::validate(
       need(!is.null(input$sources_variable), "No result under this condition"))
     data_sources()[, input$sources_variable]
@@ -464,7 +464,7 @@ server <- function(input, output) {
     })
   
   # headlines output
-  output$headlines_table <- renderTable({
+  output$headlines_table <- DT::renderDataTable({
     shiny::validate(
       need(!is.null(input$headlines_variable), "No result under this condition"))
     data_headlines()[, input$headlines_variable]
@@ -488,7 +488,7 @@ server <- function(input, output) {
     })
   
   # everything output
-  output$everything_table <- renderTable({
+  output$everything_table <- DT::renderDataTable({
     shiny::validate(
       need(!is.null(input$everything_variable), "No result under this condition"))
     data_everything()[, input$everything_variable]
