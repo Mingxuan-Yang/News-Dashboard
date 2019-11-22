@@ -60,8 +60,9 @@ url1.1.1 <- str_c(base.url1.1.1, api.key)
 url1.1.2 <- str_c(base.url1.1.2, api.key)
 data1.1.list <- c(read_json(url1.1.1)[[2]],read_json(url1.1.2)[[2]])
 
-# transform list to data
+# transform list to data frame
 data1.1 <- transform.list(data1.1.list)
+data1.1[] <- lapply(data1.1, as.character)
 
 # filter
 c.name <- c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
@@ -87,6 +88,7 @@ data1.2.list <- read_json(url1.2)$articles
 data1.2.1 <- transform.list(data1.2.list)
 data1.2.2 <- transform.list(data1.2.1$source)
 data1.2 <- cbind(data1.2.2, data1.2.1[,-1])
+data1.2[] <- lapply(data1.2, as.character)
 
 # filter
 if(is.null(data1.2)){
@@ -102,7 +104,7 @@ if(is.null(data1.2)){
 
 ```{r task 1.3}
 # data
-# there is no country param for everything data
+# since the corresponding countries of the "CNN", "Fox News", "The Wall Street Journal" and "Reuters" sources are all us, we don't need to do the country filter any more
 base.url1.3 <- "https://newsapi.org/v2/everything?sources=cnn,fox-news,the-wall-street-journal,reuters&from=2019-11-01&to=2019-11-01&qInTitle=healthcare&language=en&apiKey="
 url1.3 <- str_c(base.url1.3, api.key)
 data1.3.list <- read_json(url1.3)$articles
@@ -111,6 +113,7 @@ data1.3.list <- read_json(url1.3)$articles
 data1.3.1 <- transform.list(data1.3.list)
 data1.3.2 <- transform.list(data1.3.1$source)
 data1.3 <- cbind(data1.3.2, data1.3.1[,-1])
+data1.3[] <- lapply(data1.3, as.character)
 
 # result
 if(is.null(data1.3)){
@@ -142,7 +145,9 @@ get_sources <- function(category = NULL, api_key = NULL){
       data.list <- read_json(url)$sources
     
       # transform list to data
-      transform.list(data.list)
+      data <- transform.list(data.list)
+      data[] <- lapply(data, as.character)
+      data
       }
   }
 }
@@ -152,7 +157,7 @@ get_sources <- function(category = NULL, api_key = NULL){
 
 ```{r task 2.2}
 # sources are in the original form like c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
-# since we cannot mix country param with sources param, this function will do the country filter first
+# since the corresponding countries of the above sources are all us, we don't need to do the country filter any more
 get_headlines <- function(sources = NULL, q = NULL, page_size = 20, page = 1, api_key = NULL){
   # input checks
   stopifnot(sources %in% c("CNN", "Fox News", "The Wall Street Journal", "Reuters"))
@@ -165,21 +170,23 @@ get_headlines <- function(sources = NULL, q = NULL, page_size = 20, page = 1, ap
   if(is.null(sources)){
     data.frame()
   }else{
-    base.url <- "https://newsapi.org/v2/top-headlines?country=us&language=en&q="
-    url <- str_c(base.url, q, "&pageSize=", page_size, "&page=", page, "&apiKey=", api_key)
+    sources <- case_when(
+      sources == "CNN" ~ "cnn",
+      sources == "Fox News" ~ "fox-news",
+      sources == "The Wall Street Journal" ~ "the-wall-street-journal",
+      sources == "Reuters" ~ "reuters"
+    )
+    sources <- paste(sources, collapse = ",")
+    base.url <- "https://newsapi.org/v2/top-headlines?&language=en&q="
+    url <- str_c(base.url, q, "&pageSize=", page_size, "&page=", page, "&sources=", sources, "&apiKey=", api_key)
     data.list <- read_json(url)$articles
     
     # transform list to data
     data1 <- transform.list(data.list)
     data2 <- transform.list(data1$source)
     data <- cbind(data2, data1[,-1])
-      
-    # check if data is NULL
-    if(is.null(data)){
-      data.frame()
-    }else{
-      data %>% filter(name %in% sources)
-      }
+    data[] <- lapply(data, as.character)
+    data
     }
 }
 ```
@@ -188,6 +195,7 @@ get_headlines <- function(sources = NULL, q = NULL, page_size = 20, page = 1, ap
 
 ```{r task 2.3}
 # sources are in the original form like c("CNN", "Fox News", "The Wall Street Journal", "Reuters")
+# since the corresponding countries of the above sources are all us, we don't need to do the country filter any more
 # from and to are single character
 get_historic <- function(q = NULL, q_title = NULL, sources = NULL, from = NULL, to = NULL, sort_by = NULL, page_size = 20, page = 1, api_key = NULL){
   # input checks
@@ -232,6 +240,8 @@ get_historic <- function(q = NULL, q_title = NULL, sources = NULL, from = NULL, 
     data1 <- transform.list(data.list)
     data2 <- transform.list(data1$source)
     data <- cbind(data2, data1[,-1])
+    data[] <- lapply(data, as.character)
+    data
   }
 }
 ```
@@ -438,7 +448,7 @@ server <- function(input, output) {
   output$sources_table <- renderTable({
     shiny::validate(
       need(!is.null(input$sources_variable), "No result under this condition"))
-    data_sources()[,input$sources_variable]
+    data_sources()[, input$sources_variable]
     })
   
   # headlines reactive
@@ -457,7 +467,7 @@ server <- function(input, output) {
   output$headlines_table <- renderTable({
     shiny::validate(
       need(!is.null(input$headlines_variable), "No result under this condition"))
-    data_headlines()[,input$headlines_variable]
+    data_headlines()[, input$headlines_variable]
     })
   
   # everything reactive
@@ -481,7 +491,7 @@ server <- function(input, output) {
   output$everything_table <- renderTable({
     shiny::validate(
       need(!is.null(input$everything_variable), "No result under this condition"))
-    data_everything()[,input$everything_variable]
+    data_everything()[, input$everything_variable]
   })
   }
 
