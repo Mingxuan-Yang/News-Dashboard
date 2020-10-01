@@ -31,7 +31,7 @@ We will now create three helper functions, one for each API endpoint.
    
 3. Create `get_historic()` with arguments `q`, `q_title`, `sources`, `from`, `to`, `sort_by`, `page_size`, `page`, `api_key`. This function serves as a wrapper for News API's "Everything" endpoint.
    
-For all functions, sources should only be a subset of CNN, Fox News, The Wall Street Journal, and Reuters. The country will always be United States, and the language will always be English. Other request parameters you see in the API documentation and not specified above are not required to be included in our wrapper functions as parameters.
+For all functions, sources should only be a subset of CNN, Fox News, The Wall Street Journal, and Reuters. The country will always be United States, and the language will always be English. Other request parameters in the API documentation and not specified above are not required to be included in our wrapper functions as parameters.
 
 Function requirements:
 
