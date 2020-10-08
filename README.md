@@ -1,5 +1,7 @@
 # News Dashboard
 
+*Project Date: 2019-11-14*
+
 ## Introduction
 
 [News API](https://newsapi.org/) gives us access to breaking news headlines and historical articles from over 30,000 news sources. The purpose of this project is to use their API to create an RShiny news deck (dashboard). A free account with News API will grant us 500 requests per day and allow us to query articles up to one month old. Breaking news headlines do have a 15 minute time delay.
